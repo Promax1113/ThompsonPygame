@@ -11,11 +11,13 @@ clock = pygame.time.Clock()
 
 bg_color = (31, 35, 41)
 
+
 def draw_logo_screen():
     logo = pygame.image.load("sprites/startScreen.png")
     Block.draw_to_screen(logo, (0, 0))
     pygame.display.flip()
     time.sleep(2)
+
 
 class Block(pygame.sprite.Sprite):
     TEXTURE_SIZE = (64, 64)
@@ -91,42 +93,108 @@ class Player(pygame.sprite.Sprite):
         super().__init__()
         # Load all images once
         self.images = {
-            "up": pygame.transform.scale(pygame.image.load("sprites/up_idle.png"), (64, 64)),
-            "down": pygame.transform.scale(pygame.image.load("sprites/down_idle.png"), (64, 64)),
-            "left": pygame.transform.scale(pygame.image.load("sprites/left_idle.png"), (64, 64)),
-            "right": pygame.transform.scale(pygame.image.load("sprites/right_idle.png"), (64, 64))
+            "up": [
+                pygame.transform.scale(
+                    pygame.image.load("sprites/up_idle.png"), (64, 64)
+                ),
+                pygame.transform.scale(pygame.image.load("sprites/up1.png"), (64, 64)),
+                pygame.transform.scale(pygame.image.load("sprites/up2.png"), (64, 64)),
+            ],
+            "down": [
+                pygame.transform.scale(
+                    pygame.image.load("sprites/down_idle.png"), (64, 64)
+                ),
+                pygame.transform.scale(
+                    pygame.image.load("sprites/down1.png"), (64, 64)
+                ),
+                pygame.transform.scale(
+                    pygame.image.load("sprites/down2.png"), (64, 64)
+                ),
+            ],
+            "left": [
+                pygame.transform.scale(
+                    pygame.image.load("sprites/left_idle.png"), (64, 64)
+                ),
+                pygame.transform.scale(
+                    pygame.image.load("sprites/left1.png"), (64, 64)
+                ),
+                pygame.transform.scale(
+                    pygame.image.load("sprites/left2.png"), (64, 64)
+                ),
+            ],
+            "right": [
+                pygame.transform.scale(
+                    pygame.image.load("sprites/right_idle.png"), (64, 64)
+                ),
+                pygame.transform.scale(
+                    pygame.image.load("sprites/right1.png"), (64, 64)
+                ),
+                pygame.transform.scale(
+                    pygame.image.load("sprites/right2.png"), (64, 64)
+                ),
+            ],
         }
-        self.img = self.images["down"]
+        self.img = self.images["down"][0]
+        self.animation_index = 0
 
         self.speed = 5
         self.sprint_speed = 8
         self.velocity = pygame.math.Vector2(0, 0)
 
-        self.rect = pygame.rect.Rect(0,0,64,64)
+        self.rect = pygame.rect.Rect(0, 0, 64, 64)
 
         self.rect.x = width / 2
         self.rect.y = height / 2
+
+        self.animation_timer = 0
+        self.animation_speed = (
+            200,  # ms entre frames per aconseguir els fps necessaris
+            150,  # ms per quan fa sprint
+        )
+        self.anim_sprint = 0
+        self.direction = "down"
 
     def draw_to_screen(self):
         screen.blit(self.img, self.rect)
 
     def move(self, keys):
+        current_time = pygame.time.get_ticks()
 
         if keys[pygame.K_UP]:
             self.velocity.y = self.speed * -1
-            self.img = self.images["up"]
+            self.direction = "up"
         elif keys[pygame.K_DOWN]:
             self.velocity.y = self.speed * 1
-            self.img = self.images["down"]
+            self.direction = "down"
         elif keys[pygame.K_LEFT]:
             self.velocity.x = self.speed * -1
-            self.img = self.images["left"]
+            self.direction = "left"
         elif keys[pygame.K_RIGHT]:
             self.velocity.x = self.speed * 1
-            self.img = self.images["right"]
+            self.direction = "right"
+
         if keys[pygame.K_x]:
             self.velocity.x = self.velocity.x / self.speed * self.sprint_speed
             self.velocity.y = self.velocity.y / self.speed * self.sprint_speed
+            self.anim_sprint = 1
+        else:
+            self.anim_sprint = 0
+
+        # mira si s'esta movent i si s'ha donat a una tecla
+        if self.direction and self.velocity.magnitude():
+            if (
+                current_time - self.animation_timer
+                > self.animation_speed[self.anim_sprint]
+            ):
+                self.animation_index = (self.animation_index + 1) % len(
+                    self.images[self.direction]
+                )
+                self.img = self.images[self.direction][self.animation_index]
+                self.animation_timer = current_time
+        else:
+            # Reset to idle frame when not moving
+            self.animation_index = 0
+            self.img = self.images[self.direction][0]
 
         self.rect.topleft += self.velocity
 
